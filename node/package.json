@@ -27,10 +27,12 @@
     "mongodb": "^2.0.27",
     "socket.io": "^1.3.5",
     "underscore": "^1.8.3",
-    "xml-to-json": "^0.1.1"
+    "xml-to-json": "^0.1.1",
+    "pcap": "git://github.com/brannondorsey/node_pcap.git"
   },
   "devDependencies": {
     "node-webkit-builder": "^1.0.11",
-    "nw": "^0.12.1"
+    "nodewebkit": "0.11.6",
+    "nw-gyp": "^0.12.4"
   }
 }

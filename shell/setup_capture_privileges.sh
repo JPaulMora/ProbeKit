@@ -21,13 +21,13 @@ ISSUES_LINK="https://github.com/brannondorsey/ProbeKit/issues"
 
 function osx_capture_privileges() {
 
-    which tshark 2>/dev/null >/dev/null
+    # which tshark 2>/dev/null >/dev/null
 
-    if [[ $? -ne 0 ]]; then
-        echo "[$SCRIPT_NAME] Wireshark is not installed. Try running 'sudo ./install.sh' or install wireshark with:"
-        echo "  brew install wireshark"
-        exit 1
-    fi
+    # if [[ $? -ne 0 ]]; then
+    #     echo "[$SCRIPT_NAME] Wireshark is not installed. Try running 'sudo ./install.sh' or install wireshark with:"
+    #     echo "  brew install wireshark"
+    #     exit 1
+    # fi
 
     # redirect to allow overwrite
     curl "https://bugs.wireshark.org/bugzilla/attachment.cgi?id=3373" > "$DIR_NAME/../data/ChmodBPF.tar.gz"
@@ -47,15 +47,15 @@ function osx_capture_privileges() {
 function linux_capture_privileges() {
     
     # check if wireshark is installed
-    dpkg -s wireshark &>/dev/null
+    # dpkg -s wireshark &>/dev/null
 
-    if [[ $? -ne 0 ]]; then
-        echo "[$SCRIPT_NAME] Wireshark is not installed. Try running 'sudo ./install.sh' or install wireshark with:"
-        echo "  sudo apt-get install wireshark"
-        exit 1;
-    fi
+    # if [[ $? -ne 0 ]]; then
+    #     echo "[$SCRIPT_NAME] Wireshark is not installed. Try running 'sudo ./install.sh' or install wireshark with:"
+    #     echo "  sudo apt-get install wireshark"
+    #     exit 1;
+    # fi
 
-    dpkg-reconfigure wireshark-common
+    # dpkg-reconfigure wireshark-common
     usermod -a -G wireshark $USER
     chown root:wireshark /usr/bin/dumpcap
     setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap

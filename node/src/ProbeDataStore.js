@@ -1,5 +1,5 @@
 // this class acts as an interface to add, store, and query MAC addresses
-// using the TsharkProbeParser class. Right now it stores all of its data
+// using the ProbeCapture class. Right now it stores all of its data
 // in memory, however it is written with callbacks so that it could be extended
 // to use MongoDB internally without having to change its API
 
@@ -133,7 +133,7 @@ function addProbe(probeData, mac, ssid, timestamp, fromCSV) {
 
 	probeData.macs[mac].lastSeen = timestamp;
 	probeData.macs[mac].timesSeen++;
-
+	// console.log('ProbeDataStore SSID: ' + ssid);
 	if (probeData.macs[mac].knownNetworks.indexOf(ssid) == -1) {
 		probeData.macs[mac].knownNetworks.push(ssid);
 	}

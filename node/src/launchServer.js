@@ -7,11 +7,14 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var moment = require('moment');
-var TsharkProbeParser = require('./TsharkProbeParser');
+var ProbeCapture = require('./ProbeCapture');
 var ProcessLauncher = require('./ProcessLauncher');
 var WigleAPI = require('./WigleAPI');
 var ProbeDataStore = require('./ProbeDataStore');
 var AssetManager = require('./AssetManager');
+
+var procLauncher = undefined;
+var probeCapture = undefined;
 
 function launchServer(options) {
 
@@ -30,12 +33,9 @@ function launchServer(options) {
 	// 	process.exit(0);
 	// }
 
-	var procLauncher = undefined;
-	var tsharkProcess = undefined;
 	var writeStream = undefined;
 	var assetManager = undefined;
 
-	var probeParser = new TsharkProbeParser();
 	var probeDataStore = new ProbeDataStore();
 
 	// wait half a second before connecting to mongodb on the off chance that
@@ -87,6 +87,8 @@ function launchServer(options) {
 
 		var iface = options.interface || settings.wifiInterface;
 
+		probeCapture = new ProbeCapture(iface);	
+
 		if (!outputFile) {
 			 outputFile = assetManager.getDataPath() + '/probes.csv';
 		}
@@ -108,58 +110,29 @@ function launchServer(options) {
 		if (!csvOnly) {
 			
 			procLauncher = new ProcessLauncher(iface, true, settings);
-			tsharkProcess = procLauncher.tsharkProcess;
-			process.on('SIGINT', function(code){ procLauncher.close(); process.exit(0) });
-			process.on('SIGTERM', function(code){ procLauncher.close(); process.exit(0) });
+			process.on('SIGINT', function(code){ onClose(); });
+			process.on('SIGTERM', function(code){ onClose(); });
 		}
 
 		if (!dryRun) {
 			writeStream = fs.createWriteStream(outputFile, { flags: 'a', encoding: 'utf8' });
 		}
 
-		if (tsharkProcess) {
+		// register event first
+		if (probeCapture) {
+			
+			probeCapture.on('probeReceived', function(packet){
 
-			tsharkProcess.stdout.on('data', function (data) {
-
-				var lines = data.toString('utf8').split('\n');
-
-				for (var i = 0; i < lines.length; i++) {
-					// this will fire the probeParser.on('probeReceived') event
-					// if the packet is parsed successfully
-					probeParser.parseLine(lines[i]);
+				if (writeStream) {
+					var csvLine = packet.mac + ',' + packet.ssid + ',' + packet.timestamp + '\n'
+					writeStream.write(csvLine);
 				}
-			});
 
-			tsharkProcess.stderr.on('data', function (data) {
+				probeDataStore.addPacket(packet);
 
-				var buff = data.toString('utf8');
-
-				// tshark v1.10.6 emits stderr integers at regular intervals. Ignore them.
-				if (!buff.match(/\d/)) {
-					console.log('Tshark stderr: ' + buff);
-				}
-			});
-
-			tsharkProcess.on('close', function (code) {
-			  	console.log('[ server ] tshark process exited with code ' + code);
-			  	if (writeStream) {
-			  		writeStream.close();
-			  	}
+				console.log(moment(packet.timestamp).format('YYYY-MM-DD HH:mm:ss') + '    MAC: ' + packet.mac + '    SSID: ' + packet.ssid);
 			});
 		}
-
-		// register event first
-		probeParser.on('probeReceived', function(packet){
-
-			if (writeStream) {
-				var csvLine = packet.mac + ',' + packet.ssid + ',' + packet.timestamp + '\n'
-				writeStream.write(csvLine);
-			}
-
-			probeDataStore.addPacket(packet);
-
-			console.log(moment(packet.timestamp).format('YYYY-MM-DD HH:mm:ss') + '    MAC: ' + packet.mac + '    SSID: ' + packet.ssid);
-		});
 
 		if (liveOnly) {
 			app.get('/data/probes.csv', function(req, res){
@@ -191,20 +164,31 @@ function launchServer(options) {
 			}
 		});
 
+		app.use('/api/maps', function(req, res, next){ 
+			res.send(assetManager.getInstalledMapPackNames());
+		});
+
+		app.use('/api/map', function(req, res, next){ 
+			res.send(settings.map || '');
+		});
+
 		app.use('/data', express.static(path.resolve(assetManager.getDataPath())));
 		app.use('/data', express.static(path.resolve(__dirname + '/../../data')));
 		app.use(express.static(path.resolve(__dirname + '/../../public')));
 
 		io.on('connection', function (socket) {
 
-		    probeParser.on('probeReceived', function(probe){
+			if (probeCapture) {
+				 
+				 probeCapture.on('probeReceived', function(probe){
 		    	
-		    	// don't send if csvOnly because client loads
-		    	// csv file from AJAX
-		    	if (!csvOnly) {
-		    		socket.emit('probeReceived', probe);
-		    	}
-		    });
+		    		// don't send if csvOnly because client loads
+		    		// csv file from AJAX
+		    		if (!csvOnly) {
+		    			socket.emit('probeReceived', probe);
+		    		}
+		    	});
+			}
 
 		    // right now this method is only being used by the 
 			// installation
@@ -242,4 +226,12 @@ function launchServer(options) {
 	}
 }
 
+function onClose() {
+	console.log('[ server ] Application close event fired');
+	if (procLauncher) procLauncher.close(); 
+	if (probeCapture) probeCapture.close();
+	process.exit(0);
+}
+
 module.exports = launchServer;
+module.exports.onClose = onClose;
