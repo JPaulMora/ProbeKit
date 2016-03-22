@@ -8,7 +8,7 @@ E-mails, instant messages, videos, photos, voice chats, social network profile d
 
 ## Download and Install
 
-The latest version of Probe Kit can be downloaded from the [project website](http://probekit.io) or from this GitHub [releases page](https://github.com/brannondorsey/ProbeKit/releases). Once you've downloaded Probe Kit, pick an install method that works best for you (see below).
+The latest version of Probe Kit can be downloaded from this GitHub [releases page](https://github.com/brannondorsey/ProbeKit/releases). Once you've downloaded Probe Kit, pick an install method that works best for you (see below).
 
 Currently Probe Kit is supported on OS X and Linux only.
 
@@ -62,16 +62,17 @@ For you brave souls out there...
 git clone https://github.com/brannondorsey/ProbeKit.git
 cd ProbeKit/node
 npm install
-sudo npm install -g nw
-sudo npm install -g node-webkit-builder
+sudo npm install -g nw-builder
 cd ../shell
-sudo ./build osx64 #comma-seperated list of build platforms, see node-webkit-builder docs
+sudo ./build.sh osx64 #comma-seperated list of build platforms, see node-webkit-builder docs
 cd "../build/Probe Kit/osx64/"
 sudo ./install.sh
 open "Probe Kit.app" # OS X only
 ```
 
 ## Getting Started
+
+Once you have installed everything, you may launch ProbeKit by running `shell/launch_installation.sh` or by running ‘sudo node node/server.js` which will let you setup custom flags for the server. Alternatively you can [build](#Source-Code-Install) and use the Probe Kit.app
 
 ## License and Attribution
 
