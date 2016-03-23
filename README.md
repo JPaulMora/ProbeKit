@@ -72,7 +72,9 @@ open "Probe Kit.app" # OS X only
 
 ## Getting Started
 
-Once you have installed everything, you may launch ProbeKit by running `shell/launch_installation.sh` or by running ‘sudo node node/server.js` which will let you setup custom flags for the server. Alternatively you can [build](#Source-Code-Install) and use the Probe Kit.app
+Once you have installed everything, you may launch ProbeKit by running `shell/launch_installation.sh` or by running `sudo node node/server.js` which will let you setup custom flags for the server. Alternatively you can [build](#Source-Code-Install) and use the Probe Kit.app
+
+**Note:** The default _pcap_ dependency should be installed by running `npm install https://github.com/mranney/node_pcap.git`
 
 ## License and Attribution
 
