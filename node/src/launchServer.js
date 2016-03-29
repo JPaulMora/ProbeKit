@@ -45,7 +45,7 @@ function launchServer(options) {
 	setTimeout(function(){
 
 		var wigleAPI = new WigleAPI('mongodb://localhost:27017/probe', function(err, db){
-		
+
 			// note any /api requests will fail until this callback is run
 			if (err) {
 				console.log('[ server ] Error connecting to MongoDB: ' + err);
@@ -67,11 +67,11 @@ function launchServer(options) {
 		}
 
 		fs.readFile(assetManager.getDataPath() + '/settings.json', { encoding: 'utf8' }, onSettingsFileLoaded);
-		
+
 	});
 
 	function onSettingsFileLoaded(err, data) {
-		
+
 		var settings = {};
 
 		if (err) {
@@ -87,7 +87,7 @@ function launchServer(options) {
 
 		var iface = options.interface || settings.wifiInterface;
 
-		probeCapture = new ProbeCapture(iface);	
+		probeCapture = new ProbeCapture(iface);
 
 		if (!outputFile) {
 			 outputFile = assetManager.getDataPath() + '/probes.csv';
@@ -100,7 +100,7 @@ function launchServer(options) {
 				// note that any query made to probeDataStore before
 				// this callback returns will not have access to the
 				// CSV data
-				
+
 				if (err) {
 					console.log('[ server ] Error loading probe CSV file');
 				}
@@ -108,7 +108,7 @@ function launchServer(options) {
 		}
 
 		if (!csvOnly) {
-			
+
 			procLauncher = new ProcessLauncher(iface, true, settings);
 			process.on('SIGINT', function(code){ onClose(); });
 			process.on('SIGTERM', function(code){ onClose(); });
@@ -120,7 +120,7 @@ function launchServer(options) {
 
 		// register event first
 		if (probeCapture) {
-			
+
 			probeCapture.on('probeReceived', function(packet){
 
 				if (writeStream) {
@@ -140,18 +140,18 @@ function launchServer(options) {
 			});
 		}
 
-		app.use('/api/devices', function(req, res, next){ 
+		app.use('/api/devices', function(req, res, next){
 			probeDataStore.getDevicesAsArray(function(devices){
 				res.json(devices);
 			});
 		});
 
 		app.use('/api/networks', function(req, res, next){
-			
+
 			if (req.query && req.query.device) {
 
 				probeDataStore.getNetworks(req.query.device, function(networks) {
-					
+
 					var result = networks || { "error": "device not found." };
 					res.json(result);
 				});
@@ -164,11 +164,11 @@ function launchServer(options) {
 			}
 		});
 
-		app.use('/api/maps', function(req, res, next){ 
+		app.use('/api/maps', function(req, res, next){
 			res.send(assetManager.getInstalledMapPackNames());
 		});
 
-		app.use('/api/map', function(req, res, next){ 
+		app.use('/api/map', function(req, res, next){
 			res.send(settings.map || '');
 		});
 
@@ -179,9 +179,9 @@ function launchServer(options) {
 		io.on('connection', function (socket) {
 
 			if (probeCapture) {
-				 
+
 				 probeCapture.on('probeReceived', function(probe){
-		    	
+
 		    		// don't send if csvOnly because client loads
 		    		// csv file from AJAX
 		    		if (!csvOnly) {
@@ -190,7 +190,7 @@ function launchServer(options) {
 		    	});
 			}
 
-		    // right now this method is only being used by the 
+		    // right now this method is only being used by the
 			// installation
 			probeDataStore.on('newDevice', function(probe){
 				socket.emit('newDeviceReceived', probe.mac);
@@ -207,17 +207,24 @@ function launchServer(options) {
 			  console.log('[ server ] Server listening at http://%s:%s', host, port)
 
 			  if (launchBrowser) {
+					console.log('[ server ] Launching default system browser to url: ' + url)
 
-					var proc = spawnSync('which', ['firefox'], { encoding: 'utf8' });
-					if (proc.status == 0) {
-
+					var os = spawnSync('uname', { encoding: 'utf8' });
 					var url = 'http://localhost:' + port;
-				  	console.log('[ server ] Launching default system browser to url: ' + url)
-				  	var browserProc = spawn('firefox', ['--new-window', url]);
-				  	browserProc.stderr.pipe(process.stderr);
 
-					} else {
-						console.log('[ server ] Warning: Could not launch browser window as firefox is not installed');
+					if (os.stdout.toString().trim() === 'Darwin'){
+						var macbrowserProc = spawn('open',['-a', '/Applications/Firefox.app', url]);
+						if (macbrowserProc.status == 1){
+							console.log('[ server ] Warning: Could not launch firefox');
+						}
+					}else{
+						var proc = spawnSync('which', ['firefox'], { encoding: 'utf8' });
+						if (proc.status == 0) {
+				  		var browserProc = spawn('firefox', ['--new-window', url]);
+				  		browserProc.stderr.pipe(process.stderr);
+						} else {
+							console.log('[ server ] Warning: Could not launch firefox, as it isn\'t installed.');
+						}
 					}
 			  }
 
@@ -228,7 +235,7 @@ function launchServer(options) {
 
 function onClose() {
 	console.log('[ server ] Application close event fired');
-	if (procLauncher) procLauncher.close(); 
+	if (procLauncher) procLauncher.close();
 	if (probeCapture) probeCapture.close();
 	process.exit(0);
 }
